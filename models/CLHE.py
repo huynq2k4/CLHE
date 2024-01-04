@@ -83,9 +83,18 @@ class HierachicalEncoder(nn.Module):
 
         # BI >>>\
         # 
-        self.item_embeddings = nn.Parameter(
-            torch.FloatTensor(self.num_item, self.embedding_size))
-        init(self.item_embeddings)
+        # self.item_embeddings = nn.Parameter(
+        #     torch.FloatTensor(self.num_item, self.embedding_size))
+        # init(self.item_embeddings)
+
+        self.item_transformation = nn.Linear(
+            self.embedding_size, self.embedding_size)
+        init(self.item_transformation)
+        self.item_embeddings = self.item_transformation(self.bi_graph_train)
+        
+        
+
+
         self.multimodal_feature_dim += self.embedding_size
         # BI <<<
 
