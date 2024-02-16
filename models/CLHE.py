@@ -206,14 +206,14 @@ class HierachicalEncoder(nn.Module):
 
         # # early-fusion
         # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        mm_feature_full = torch.zeros(c_feature.shape)
+        mm_feature_full = torch.zeros_like(c_feature)
         features = [mm_feature_full]
 
         features.append(self.item_embeddings)
 
         # cf_feature_full = self.cf_transformation(self.cf_feature)
         # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        cf_feature_full = torch.zeros(c_feature.shape)
+        cf_feature_full = torch.zeros_like(c_feature)
         features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
