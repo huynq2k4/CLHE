@@ -144,14 +144,16 @@ class HierachicalEncoder(nn.Module):
 
     def forward_all(self):
         c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        mm_feature_full = torch.zeros_like(c_feature)
         features = [mm_feature_full]
         features.append(self.item_embeddings)
 
-        cf_feature_full = self.cf_transformation(self.cf_feature)
-        cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        # cf_feature_full = self.cf_transformation(self.cf_feature)
+        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        cf_feature_full = torch.zeros_like(c_feature)
         features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
@@ -170,9 +172,10 @@ class HierachicalEncoder(nn.Module):
         seq_modify.masked_fill_(modify_mask, 0)
 
         c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        mm_feature_full = torch.zeros_like(c_feature)
         mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
 
         features = [mm_feature]
@@ -180,8 +183,9 @@ class HierachicalEncoder(nn.Module):
         bi_feature = bi_feature_full[seq_modify]
         features.append(bi_feature)
 
-        cf_feature_full = self.cf_transformation(self.cf_feature)
-        cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        # cf_feature_full = self.cf_transformation(self.cf_feature)
+        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        cf_feature_full = torch.zeros_like(c_feature)
         cf_feature = cf_feature_full[seq_modify]
         features.append(cf_feature)
 
@@ -198,16 +202,18 @@ class HierachicalEncoder(nn.Module):
 
     def generate_two_subs(self, dropout_ratio=0):
         c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # t_feature = self.t_encoder(self.text_feature)
 
-        # early-fusion
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # # early-fusion
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        mm_feature_full = torch.zeros(c_feature.shape)
         features = [mm_feature_full]
 
         features.append(self.item_embeddings)
 
-        cf_feature_full = self.cf_transformation(self.cf_feature)
-        cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        # cf_feature_full = self.cf_transformation(self.cf_feature)
+        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        cf_feature_full = torch.zeros(c_feature.shape)
         features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
