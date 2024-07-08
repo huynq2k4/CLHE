@@ -1,5 +1,5 @@
 pog:
-  data_path: '/kaggle/input/cold-start-datasets/datasets/'
+  data_path: './datasets/'
   batch_size_train: 256 # the batch size for training
   batch_size_test: 1024 # the batch size for testing
   topk: [5, 10, 20, 40, 80] # the topks metrics for evaluation
@@ -12,7 +12,7 @@ pog:
   test_interval: 2 # by how many epochs to run the validation and testing.
 
 pog_dense:
-  data_path: '/kaggle/input/cold-start-datasets/datasets/'
+  data_path: './datasets/'
   batch_size_train: 256 # the batch size for training
   batch_size_test: 1024 # the batch size for testing
   topk: [5, 10, 20, 40, 80] # the topks metrics for evaluation

@@ -14,6 +14,7 @@ import torch
 import torch.optim as optim
 from utility import Datasets
 import models
+from model_performance import beyond_acc
 
 
 def setup_seed(seed=2023):
@@ -190,6 +191,15 @@ def main():
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
+    
+    data_pred, data_truth = export_prediction(model, dataset.test_loader, conf)
+    
+    with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
+        json.dump(data_pred, json_file)
+    with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
+        json.dump(data_truth, json_file)
+
+    beyond_acc(dataset=dataset_name)
 
 
 def init_best_metrics(conf):
@@ -289,12 +299,34 @@ def test(model, dataloader, conf):
             tmp_metrics, b_i_gt.to(device), pred_i, conf["topk"])
 
     metrics = {}
-    for m, topk_res in tmp_metrics.items():
+    for m, topk_res in tmp_metrics.items(): #Check here
         metrics[m] = {}
         for topk, res in topk_res.items():
             metrics[m][topk] = res[0] / res[1]
 
     return metrics
+
+def export_prediction(model, dataloader, conf, topk=20):
+    cnt = 0
+    data_pred = {}
+    data_truth = {}
+    device = conf["device"]
+    model.eval()
+    rs = model.propagate()
+    pbar = tqdm(dataloader, total=len(dataloader))
+    for index, b_i_input, seq_b_i_input, b_i_gt in pbar:
+        pred_i = model.evaluate(
+            rs, (index.to(device), b_i_input.to(device), seq_b_i_input.to(device)))
+        pred_i = pred_i - 1e8 * b_i_input.to(device)
+        grd = b_i_gt.to(device)
+        _, col_indice = torch.topk(pred_i, topk)
+        col_indice = col_indice + 1
+        data_pred.update({cnt + i: col_indice[i].tolist() for i in range(col_indice.shape[0])})
+        data_truth.update({cnt + i: [torch.nonzero(grd[i]).squeeze().tolist()] for i in range(grd.shape[0])})
+        cnt += col_indice.shape[0]
+    return data_pred, data_truth
+    
+    
 
 
 def get_metrics(metrics, grd, pred, topks):
