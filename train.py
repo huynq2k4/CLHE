@@ -305,7 +305,7 @@ def test(model, dataloader, conf, export_len=None):
             grd = b_i_gt.to(device)
             _, col_indice = torch.topk(pred_i, topk)
             data_pred.update({cnt + i: col_indice[i].tolist() for i in range(col_indice.shape[0])})
-            data_truth.update({cnt + i: [torch.nonzero(grd[i]).squeeze().tolist()] for i in range(grd.shape[0])})
+            data_truth.update({cnt + i: torch.nonzero(grd[i]).squeeze().tolist() for i in range(grd.shape[0])})
             for item_id in data_truth:
                 if type(data_truth[item_id]) != list:
                     data_truth[item_id] = [data_truth[item_id]]
