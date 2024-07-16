@@ -183,23 +183,24 @@ def main():
 
             if (batch_anchor+1) % test_interval_bs == 0:
                 metrics = {}
-                metrics["val"] = test(model, dataset.val_loader, conf)
-                metrics["test"] = test(model, dataset.test_loader, conf)
+                metrics["val"], _, _ = test(model, dataset.val_loader, conf)
+                if epoch != conf['epochs'] - 1:
+                    metrics["test"], _, _ = test(model, dataset.test_loader, conf)
+                else:
+                    export_len = 100
+                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=export_len)
+                    with open(f'datasets/{dataset_name}/{dataset_name}_pred_{export_len}.json', 'w') as json_file:
+                        json.dump(data_pred, json_file)
+                    with open(f'datasets/{dataset_name}/{dataset_name}_future_{export_len}.json', 'w') as json_file:
+                        json.dump(data_truth, json_file)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
-    
-    data_pred, data_truth = export_prediction(model, dataset.test_loader, conf)
-    
-    with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
-        json.dump(data_pred, json_file)
-    with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
-        json.dump(data_truth, json_file)
 
-    beyond_acc(dataset=dataset_name)
+    beyond_acc(dataset_name, conf['topk'], conf['model'])
 
 
 def init_best_metrics(conf):
@@ -280,7 +281,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
     return best_metrics, best_perform, best_epoch, is_better
 
 
-def test(model, dataloader, conf):
+def test(model, dataloader, conf, export_len=None):
     tmp_metrics = {}
     for m in ["recall", "ndcg"]:
         tmp_metrics[m] = {}
@@ -291,12 +292,25 @@ def test(model, dataloader, conf):
     model.eval()
     rs = model.propagate()
     pbar = tqdm(dataloader, total=len(dataloader))
+    data_pred = {} if export_len else None
+    data_truth = {} if export_len else None
+    cnt = 0
+
     for index, b_i_input, seq_b_i_input, b_i_gt in pbar:
         pred_i = model.evaluate(
             rs, (index.to(device), b_i_input.to(device), seq_b_i_input.to(device)))
-        pred_i = pred_i - 1e8 * b_i_input.to(device)  # mask
+        pred_i = pred_i - 1e8 * b_i_input.to(device)
         tmp_metrics = get_metrics(
             tmp_metrics, b_i_gt.to(device), pred_i, conf["topk"])
+        if export_len:
+            grd = b_i_gt.to(device)
+            _, col_indice = torch.topk(pred_i, topk)
+            data_pred.update({cnt + i: col_indice[i].tolist() for i in range(col_indice.shape[0])})
+            data_truth.update({cnt + i: [torch.nonzero(grd[i]).squeeze().tolist()] for i in range(grd.shape[0])})
+            for item_id in data_truth:
+                if type(data_truth[item_id]) != list:
+                    data_truth[item_id] = [data_truth[item_id]]
+            cnt += col_indice.shape[0]
 
     metrics = {}
     for m, topk_res in tmp_metrics.items(): #Check here
@@ -304,7 +318,7 @@ def test(model, dataloader, conf):
         for topk, res in topk_res.items():
             metrics[m][topk] = res[0] / res[1]
 
-    return metrics
+    return metrics, data_pred, data_truth
 
 def export_prediction(model, dataloader, conf, topk=20):
     cnt = 0

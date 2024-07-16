@@ -29,7 +29,11 @@ def utility(rec_df, group):
     """
 
     rec_df['rating'] = rec_df['rating'].fillna(0)
-    total = rec_df.groupby(group.category)['rating'].sum()
+    total = rec_df.groupby(group.category)['rating'].sum().to_dict()
+    if group.minor not in total:
+        total[group.minor] = 0
+    if group.major not in total:
+        total[group.major] = 0
 
     minor_freq = total[group.minor] / group.group_freqs[group.minor]
     major_freq = total[group.major] / group.group_freqs[group.major]

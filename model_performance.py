@@ -1,4 +1,4 @@
-from metrics import *
+from accuracy_metrics import *
 import pandas as pd
 import json
 import argparse
@@ -8,14 +8,13 @@ from metric_utils.groupinfo import GroupInfo
 import metric_utils.position as pos
 from diversity_metrics import *
 
-
 def convert_to_item_cate_matrix(group_item):
     # Get unique item IDs and category IDs
     item_ids = list(set(item_id for item_ids in group_item.values() for item_id in item_ids))
     category_ids = list(group_item.keys())
 
     # Create an item-category matrix with zeros
-    item_cate_matrix = torch.zeros((len(item_ids)+1, len(category_ids)+1), dtype=torch.float32)
+    item_cate_matrix = torch.zeros((len(item_ids), len(category_ids)), dtype=torch.float32)
 
     # Fill the matrix with ones where items belong to categories
     for item_id in item_ids:
@@ -27,11 +26,51 @@ def convert_to_item_cate_matrix(group_item):
 
     return item_cate_matrix
 
-
-
-def get_eval_input(pred_folder, dataset, number_list, size, file, threshold, pweight): 
+def get_eval_repeat(dataset, size, file):
     dir = os.path.dirname(__file__)
-    group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_popularity.json'
+
+    truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json'
+
+    with open(truth_file, 'r') as f:
+        data_truth = json.load(f)
+
+    a_ndcg = []
+    a_recall = []
+
+    
+    pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
+
+    with open(pred_file, 'r') as f:
+        data_pred = json.load(f)
+    
+    ndcg = []
+    recall = []
+
+    for user in data_truth:
+        if len(data_truth[user]) != 0:
+            pred = data_pred[user]
+            truth = data_truth[user]
+            u_ndcg = get_NDCG(truth, pred, size)
+            ndcg.append(u_ndcg)
+            u_recall = get_Recall(truth, pred, size)
+            recall.append(u_recall)
+
+
+    
+    a_ndcg.append(np.mean(ndcg))
+    a_recall.append(np.mean(recall))
+
+   
+
+
+    file.write('recall: '+ str([round(num, 4) for num in a_recall]) +' '+ str(round(np.mean(a_recall), 4)) +' '+ str(round(np.std(a_recall) / np.sqrt(len(a_recall)), 4)) +'\n')
+    file.write('ndcg: '+ str([round(num, 4) for num in a_ndcg]) +' '+ str(round(np.mean(a_ndcg), 4)) +' '+ str(round(np.std(a_ndcg) / np.sqrt(len(a_ndcg)), 4)) +'\n')
+
+
+
+def get_eval_fairness(dataset, size, file, pweight): 
+    dir = os.path.dirname(__file__)
+    group_file = f'{dir}/datasets/{dataset}/bundle_popularity.json'
     with open(group_file, 'r') as f:
         group_item = json.load(f)
     group_dict = dict()
@@ -100,20 +139,16 @@ def get_eval_input(pred_folder, dataset, number_list, size, file, threshold, pwe
     EUR.append(default_results['logEUR'])          
     RUR.append(default_results['logRUR'])      
 
-    #file.write('basket size: ' + str(size) + '\n')
-
     file.write('EEL: ' + str([round(num, 4) for num in EEL]) +' '+ str(round(np.mean(EEL), 4)) +' '+ str(round(np.std(EEL) / np.sqrt(len(EEL)), 4)) +'\n')
     file.write('EED: ' + str([round(num, 4) for num in EED]) +' '+ str(round(np.mean(EED), 4)) +' '+ str(round(np.std(EED) / np.sqrt(len(EED)), 4)) +'\n')
     file.write('EER: ' + str([round(num, 4) for num in EER]) +' '+ str(round(np.mean(EER), 4)) +' '+ str(round(np.std(EER) / np.sqrt(len(EER)), 4)) +'\n')
     file.write('DP: ' + str([round(num, 4) for num in DP]) +' '+ str(round(np.mean(DP), 4)) +' '+ str(round(np.std(DP) / np.sqrt(len(DP)), 4)) +'\n')
     file.write('EUR: ' + str([round(num, 4) for num in EUR]) +' '+ str(round(np.mean(EUR), 4)) +' '+ str(round(np.std(EUR) / np.sqrt(len(EUR)), 4)) +'\n')
     file.write('RUR: ' + str([round(num, 4) for num in RUR]) +' '+ str(round(np.mean(RUR), 4)) +' '+ str(round(np.std(RUR) / np.sqrt(len(RUR)), 4)) +'\n')
-    
-    
-    return EEL
+
  
 
-def eval_diversity(pred_folder, dataset, number_list, size, file, threshold): #evaluate diversity
+def get_eval_diversity(dataset, size, file): #evaluate diversity
     dir = os.path.dirname(__file__)
     group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_category.json'
     with open(group_file, 'r') as f:
@@ -138,8 +173,6 @@ def eval_diversity(pred_folder, dataset, number_list, size, file, threshold): #e
 
     rank_list = torch.tensor(list(test_dict.values())) #torch.Size([user_num, size])
 
-    print(rank_list)
-
     item_cate_matrix = convert_to_item_cate_matrix(group_item)
     diversity = diversity_calculator(rank_list, item_cate_matrix)
     
@@ -158,29 +191,28 @@ def eval_diversity(pred_folder, dataset, number_list, size, file, threshold): #e
     file.write('DS: ' + str([round(num, 4) for num in DS]) +' '+ str(round(np.mean(DS), 4)) +' '+ str(round(np.std(DS) / np.sqrt(len(DS)), 4)) +'\n')
     file.write('ETP_AGG: ' + str([round(num, 4) for num in ETP_AGG]) +' '+ str(round(np.mean(ETP_AGG), 4)) +' '+ str(round(np.std(ETP_AGG) / np.sqrt(len(ETP_AGG)), 4)) +'\n')
     file.write('GINI: ' + str([round(num, 4) for num in GINI]) +' '+ str(round(np.mean(GINI), 4)) +' '+ str(round(np.std(GINI) / np.sqrt(len(GINI)), 4)) +'\n')
-  
-    
-    return ILD
+
  
 
-def beyond_acc(dataset):
+def beyond_acc(dataset, topk, method_name):
 
-    pred_folder = 'final_results_fair'
-    number_list = 0
-    method_name = 'CLHE'
-    threshold = 0.5
     dir = os.path.dirname(__file__)
     eval_file = f'{dir}/datasets/{dataset}/eval_{method_name}.txt'
     f = open(eval_file, 'w')
     
 
-    f.write('############'+dataset+'########### \n')
-    get_eval_input(pred_folder, dataset, number_list, 20, f, threshold, pweight='default')
-    eval_diversity(pred_folder, dataset, number_list, 20, f, threshold)
+    f.write('-------------'+dataset+'-------------- \n')
+    for k in topk:
+        f.write('list size: ' + str(k) + '\n')
+        get_eval_repeat(dataset, k, f)
+        get_eval_fairness(dataset, k, f, pweight='default')
+        get_eval_diversity(dataset, k, f)
+        f.write('\n')
 
-    # get_repeat_eval(pred_folder, dataset, 20, number_list, f, threshold)
-    # get_eval_input(pred_folder, dataset, number_list, 20, f, threshold, pweight='default')
-    # eval_diversity(pred_folder, dataset, number_list, 20, f, threshold)
+
+if __name__ == '__main__':
+    beyond_acc('Youshu', 20, 'CrossCBR')
+
 
 
 
