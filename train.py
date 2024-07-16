@@ -187,11 +187,10 @@ def main():
                 if epoch != conf['epochs'] - 1:
                     metrics["test"], _, _ = test(model, dataset.test_loader, conf)
                 else:
-                    export_len = 100
-                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=export_len)
-                    with open(f'datasets/{dataset_name}/{dataset_name}_pred_{export_len}.json', 'w') as json_file:
+                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=100)
+                    with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
                         json.dump(data_pred, json_file)
-                    with open(f'datasets/{dataset_name}/{dataset_name}_future_{export_len}.json', 'w') as json_file:
+                    with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
                         json.dump(data_truth, json_file)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)

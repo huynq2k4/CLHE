@@ -70,7 +70,7 @@ def get_eval_repeat(dataset, size, file):
 
 def get_eval_fairness(dataset, size, file, pweight): 
     dir = os.path.dirname(__file__)
-    group_file = f'{dir}/datasets/{dataset}/bundle_popularity.json'
+    group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_popularity.json'
     with open(group_file, 'r') as f:
         group_item = json.load(f)
     group_dict = dict()
