@@ -167,6 +167,7 @@ class Datasets():
         self.graphs = [u_i_graph, b_i_graph_train, b_i_graph_seen]
 
         self.features = self.get_features()
+        self.group_pop = self.get_pop_vec()
 
         self.bundle_train_data = BundleTrainDataset(
             conf, b_i_pairs_train, b_i_graph_train, self.features, self.num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, conf["neg_num"])
@@ -251,6 +252,14 @@ class Datasets():
             b_i_pairs_gt, (self.num_bundles, self.num_items))
 
         return b_i_pairs_i, b_i_graph_i, b_i_pairs_gt, b_i_graph_gt
+    
+    def get_pop_vec(self):
+        dir = os.path.dirname(__file__)
+        group_file = f'{dir}/datasets/{self.name}/{self.name}_group_purchase_popularity.json'
+        with open(group_file, 'r') as f:
+            group_pop = json.load(f)
+
+        return group_pop
 
 
 def pairs2csr(pairs, shape):
