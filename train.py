@@ -184,7 +184,7 @@ def main():
             if (batch_anchor+1) % test_interval_bs == 0:
                 metrics = {}
                 metrics["val"], _, _ = test(model, dataset.val_loader, conf)
-                if epoch != conf['epochs'] - 1:
+                if epoch != num_epoch - 1:
                     metrics["test"], _, _ = test(model, dataset.test_loader, conf)
                 else:
                     metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=100)
