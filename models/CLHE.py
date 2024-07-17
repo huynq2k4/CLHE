@@ -326,12 +326,12 @@ class CLHE(nn.Module):
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
-        pop_batch = list(set(self.pop.numpy()).intersection(set(items_in_batch.numpy())))
-        unpop_batch = list(set(self.unpop.numpy()).intersection(set(items_in_batch.numpy())))
+        pop_batch = list(set(self.pop).intersection(set(items_in_batch.numpy())))
+        unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.numpy())))
         feat_pop = feat_retrival_view[pop_batch]
         feat_unpop = feat_retrival_view[unpop_batch]
         pop_loss = MMD(feat_pop, feat_unpop, kernel='multiscale', device=self.device)
-        
+
         item_loss = torch.tensor(0).to(self.device)
         if self.cl_alpha > 0:
             if self.item_augmentation == "FD":
