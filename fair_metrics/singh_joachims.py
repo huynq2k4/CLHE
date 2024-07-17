@@ -28,7 +28,7 @@ def utility(rec_df, group):
         group  -- see GroupInfo.py
     """
 
-    rec_df['rating'] = rec_df['rating'].fillna(0)
+    rec_df.loc[:, 'rating'] = rec_df.loc[:, 'rating'].fillna(0)
     total = rec_df.groupby(group.category)['rating'].sum().to_dict()
     if group.minor not in total:
         total[group.minor] = 0
@@ -97,7 +97,7 @@ def discounted_gain(rec_df, group, weight_vector):
     """
    
     
-    rec_df['group_discount'] = rec_df['rating'] * weight_vector 
+    rec_df.insert(1, 'group_discount', rec_df.loc[:, 'rating'] * weight_vector)
     try:
         nusers = rec_df['user'].nunique()
         
@@ -186,7 +186,7 @@ def realized_utility_ratio(rec_df, test_set, group, weight_vector):
         rating -- 0/1, whether a user clicked on an item (aka relevance)
     """
 
-    rec_df['rating'] = rec_df['rating'].fillna(0.0) 
+    rec_df.loc[:, 'rating'] = rec_df.loc[:, 'rating'].fillna(0.0) 
     exp = discounted_gain(rec_df, group, weight_vector)
 
     util = utility(test_set, group)

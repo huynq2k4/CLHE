@@ -26,49 +26,45 @@ def convert_to_item_cate_matrix(group_item):
 
     return item_cate_matrix
 
-def get_eval_repeat(dataset, size, file):
-    dir = os.path.dirname(__file__)
+def get_eval_accuracy(dataset, data_pred, data_truth, topk):
+    # dir = os.path.dirname(__file__)
 
-    truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json'
+    # truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json'
 
-    with open(truth_file, 'r') as f:
-        data_truth = json.load(f)
+    # with open(truth_file, 'r') as f:
+    #     data_truth = json.load(f)
 
     a_ndcg = []
     a_recall = []
 
     
-    pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
+    # pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
 
-    with open(pred_file, 'r') as f:
-        data_pred = json.load(f)
-    
-    ndcg = []
-    recall = []
+    # with open(pred_file, 'r') as f:
+    #     data_pred = json.load(f)
+    for size in topk:
+        ndcg = []
+        recall = []
 
-    for user in data_truth:
-        if len(data_truth[user]) != 0:
-            pred = data_pred[user]
-            truth = data_truth[user]
-            u_ndcg = get_NDCG(truth, pred, size)
-            ndcg.append(u_ndcg)
-            u_recall = get_Recall(truth, pred, size)
-            recall.append(u_recall)
-
-
-    
-    a_ndcg.append(np.mean(ndcg))
-    a_recall.append(np.mean(recall))
-
-   
+        for user in data_truth:
+            if len(data_truth[user]) != 0:
+                pred = data_pred[user]
+                truth = data_truth[user]
+                u_ndcg = get_NDCG(truth, pred, size)
+                ndcg.append(u_ndcg)
+                u_recall = get_Recall(truth, pred, size)
+                recall.append(u_recall)
 
 
-    file.write('recall: '+ str([round(num, 4) for num in a_recall]) +' '+ str(round(np.mean(a_recall), 4)) +' '+ str(round(np.std(a_recall) / np.sqrt(len(a_recall)), 4)) +'\n')
-    file.write('ndcg: '+ str([round(num, 4) for num in a_ndcg]) +' '+ str(round(np.mean(a_ndcg), 4)) +' '+ str(round(np.std(a_ndcg) / np.sqrt(len(a_ndcg)), 4)) +'\n')
+        
+        a_ndcg.append(np.mean(ndcg))
+        a_recall.append(np.mean(recall))
+    print("Done accuracy!")
+    return a_recall, a_ndcg
 
 
 
-def get_eval_fairness(dataset, size, file, pweight): 
+def get_eval_fairness(dataset, data_pred, data_truth, topk, pweight): 
     dir = os.path.dirname(__file__)
     group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_popularity.json'
     with open(group_file, 'r') as f:
@@ -77,28 +73,20 @@ def get_eval_fairness(dataset, size, file, pweight):
     for name, item in group_item.items():
         group_dict[name] = len(item) #the number of each group
     group = GroupInfo(pd.Series(group_dict), 'unpop', 'pop', 'popularity')
-
-         
-    EEL = []            
-    EED = []             
-    EER = []             
-    DP = []           
-    EUR = []          
-    RUR = []       
-
     
-    pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
+    fair_res = {'EEL': [], 'EED': [], 'EER': [], 'DP': [], 'EUR': [], 'RUR': []}
+    
+    # pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
     
 
-    with open(pred_file, 'r') as f:
-        data_pred = json.load(f)
+    # with open(pred_file, 'r') as f:
+    #     data_pred = json.load(f)
 
     
 
-    truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json' # all users
-    with open(truth_file, 'r') as f:
-        data_truth = json.load(f)
-
+    # truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json' # all users
+    # with open(truth_file, 'r') as f:
+    #     data_truth = json.load(f)
     rows = []
     for user_id, items in data_truth.items():
         for i, item_id in enumerate(items):
@@ -129,72 +117,66 @@ def get_eval_fairness(dataset, size, file, pweight):
     relev = pd.DataFrame(row, columns=['user', 'item', 'popularity', 'rank']) #in line with recs
 
     MA = ma(recs, test_rates, group, original_relev=relev)
-    default_results = MA.run_default_setting(listsize=size, pweight=pweight)
+    for size in topk:
+        default_results = MA.run_default_setting(listsize=size, pweight=pweight)
 
-            
-    EEL.append(default_results['EEL'])     
-    EED.append(default_results['EED'])       
-    EER.append(default_results['EER'])       
-    DP.append(default_results['logDP'])          
-    EUR.append(default_results['logEUR'])          
-    RUR.append(default_results['logRUR'])      
+                
+        fair_res['EEL'].append(default_results['EEL'])     
+        fair_res['EED'].append(default_results['EED'])       
+        fair_res['EER'].append(default_results['EER'])       
+        fair_res['DP'].append(default_results['logDP'])          
+        fair_res['EUR'].append(default_results['logEUR'])          
+        fair_res['RUR'].append(default_results['logRUR']) 
 
-    file.write('EEL: ' + str([round(num, 4) for num in EEL]) +' '+ str(round(np.mean(EEL), 4)) +' '+ str(round(np.std(EEL) / np.sqrt(len(EEL)), 4)) +'\n')
-    file.write('EED: ' + str([round(num, 4) for num in EED]) +' '+ str(round(np.mean(EED), 4)) +' '+ str(round(np.std(EED) / np.sqrt(len(EED)), 4)) +'\n')
-    file.write('EER: ' + str([round(num, 4) for num in EER]) +' '+ str(round(np.mean(EER), 4)) +' '+ str(round(np.std(EER) / np.sqrt(len(EER)), 4)) +'\n')
-    file.write('DP: ' + str([round(num, 4) for num in DP]) +' '+ str(round(np.mean(DP), 4)) +' '+ str(round(np.std(DP) / np.sqrt(len(DP)), 4)) +'\n')
-    file.write('EUR: ' + str([round(num, 4) for num in EUR]) +' '+ str(round(np.mean(EUR), 4)) +' '+ str(round(np.std(EUR) / np.sqrt(len(EUR)), 4)) +'\n')
-    file.write('RUR: ' + str([round(num, 4) for num in RUR]) +' '+ str(round(np.mean(RUR), 4)) +' '+ str(round(np.std(RUR) / np.sqrt(len(RUR)), 4)) +'\n')
+    print("Done fairness!")
+    return fair_res     
 
  
 
-def get_eval_diversity(dataset, size, file): #evaluate diversity
+def get_eval_diversity(dataset, data_pred, topk): #evaluate diversity
     dir = os.path.dirname(__file__)
     group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_category.json'
     with open(group_file, 'r') as f:
         group_item = json.load(f)
     
-    ILD = []
-    ETP = []
-    DS = []
-    ETP_AGG = []
-    GINI = []
+    div_res = {'ILD': [], 'ETP': [], 'DS': [], 'ETP_AGG': [], 'GINI': []}
 
 
 
-    pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
+    # pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
     
 
-    with open(pred_file, 'r') as f:
-        data_pred = json.load(f)
-
-    
-    test_dict = {user: data_pred[user][:size] + [0] * (size - len(data_pred[user][:size])) for user in data_pred}
-
-    rank_list = torch.tensor(list(test_dict.values())) #torch.Size([user_num, size])
+    # with open(pred_file, 'r') as f:
+    #     data_pred = json.load(f)
 
     item_cate_matrix = convert_to_item_cate_matrix(group_item)
-    diversity = diversity_calculator(rank_list, item_cate_matrix)
+    rank_list = torch.tensor(list(data_pred.values()))
     
-    ILD.append(diversity['ild'])
-    ETP.append(diversity['entropy'])
-    DS.append(diversity['diversity_score'])
-    ETP_AGG.append(diversity['entropy_aggregate'])
-    GINI.append(diversity['gini'])
+    for size in topk:
+        # test_dict = {user: data_pred[user][:size] + [0] * (size - len(data_pred[user][:size])) for user in data_pred}
+        # rank_list = torch.tensor(list(test_dict.values())) #torch.Size([user_num, size])
 
+        diversity = diversity_calculator(rank_list, item_cate_matrix, size)
+    
+        div_res['ILD'].append(diversity['ild'])
+        div_res['ETP'].append(diversity['entropy'])
+        div_res['DS'].append(diversity['diversity_score'])
+        div_res['ETP_AGG'].append(diversity['entropy_aggregate'])
+        div_res['GINI'].append(diversity['gini'])
 
-           
-    #file.write('basket size: ' + str(size) + '\n')
-
-    file.write('ILD: ' + str([round(num, 4) for num in ILD]) +' '+ str(round(np.mean(ILD), 4)) +' '+ str(round(np.std(ILD) / np.sqrt(len(ILD)), 4)) +'\n')
-    file.write('ETP: ' + str([round(num, 4) for num in ETP]) +' '+ str(round(np.mean(ETP), 4)) +' '+ str(round(np.std(ETP) / np.sqrt(len(ETP)), 4)) +'\n')
-    file.write('DS: ' + str([round(num, 4) for num in DS]) +' '+ str(round(np.mean(DS), 4)) +' '+ str(round(np.std(DS) / np.sqrt(len(DS)), 4)) +'\n')
-    file.write('ETP_AGG: ' + str([round(num, 4) for num in ETP_AGG]) +' '+ str(round(np.mean(ETP_AGG), 4)) +' '+ str(round(np.std(ETP_AGG) / np.sqrt(len(ETP_AGG)), 4)) +'\n')
-    file.write('GINI: ' + str([round(num, 4) for num in GINI]) +' '+ str(round(np.mean(GINI), 4)) +' '+ str(round(np.std(GINI) / np.sqrt(len(GINI)), 4)) +'\n')
+    print("Done diversity!")
+    return div_res
 
  
 
-def beyond_acc(dataset, topk, method_name):
+def beyond_acc(dataset, data_pred, data_truth, topk, method_name):
+
+    if type(topk) != list:
+        topk = [topk]
+
+    recall, ndcg = get_eval_accuracy(dataset, data_pred, data_truth, topk)
+    fairness = get_eval_fairness(dataset, data_pred, data_truth, topk, pweight='default')
+    diversity = get_eval_diversity(dataset, data_pred, topk)
 
     dir = os.path.dirname(__file__)
     eval_file = f'{dir}/datasets/{dataset}/eval_{method_name}.txt'
@@ -202,17 +184,88 @@ def beyond_acc(dataset, topk, method_name):
     
 
     f.write('-------------'+dataset+'-------------- \n')
-    for k in topk:
+    
+
+    for i, k in enumerate(topk):
         f.write('list size: ' + str(k) + '\n')
-        get_eval_repeat(dataset, k, f)
-        get_eval_fairness(dataset, k, f, pweight='default')
-        get_eval_diversity(dataset, k, f)
+        f.write('recall: '+ str(round(recall[i], 4)) + '\n')
+        f.write('ndcg: '+ str(round(ndcg[i], 4)) + '\n')
+        f.write('EEL: '+ str(round(fairness['EEL'][i], 4)) + '\n')
+        f.write('EED: '+ str(round(fairness['EED'][i], 4)) + '\n')
+        f.write('EER: '+ str(round(fairness['EER'][i], 4)) + '\n')
+        f.write('DP: '+ str(round(fairness['DP'][i], 4)) + '\n')
+        f.write('EUR: '+ str(round(fairness['EUR'][i], 4)) + '\n')
+        f.write('RUR: '+ str(round(fairness['RUR'][i], 4)) + '\n')
+        f.write('ILD: '+ str(round(diversity['ILD'][i], 4)) + '\n')
+        f.write('ETP: '+ str(round(diversity['ETP'][i], 4)) + '\n')
+        f.write('DS: '+ str(round(diversity['DS'][i], 4)) + '\n')
+        f.write('ETP_AGG: '+ str(round(diversity['ETP_AGG'][i], 4)) + '\n')
+        f.write('GINI: '+ str(round(diversity['GINI'][i], 4)) + '\n')
         f.write('\n')
 
 
 if __name__ == '__main__':
-    beyond_acc('Youshu', 20, 'CrossCBR')
+    dir = os.path.dirname(__file__)
+    dataset = 'pog'
+    pred_file = f'{dir}/datasets/{dataset}/{dataset}_pred.json'
+    
+    with open(pred_file, 'r') as f:
+        data_pred = json.load(f)
+
+    truth_file = f'{dir}/datasets/{dataset}/{dataset}_future.json' # all users
+    with open(truth_file, 'r') as f:
+        data_truth = json.load(f)
+
+    beyond_acc(dataset, data_pred, data_truth, [5, 10, 20], 'CLHE')
 
 
+# -------------pog-------------- 
+# list size: 5
+# recall: 0.0163
+# ndcg: 0.0148
+# EEL: 1.2975
+# EED: 2.2427
+# EER: 1.8951
+# DP: 2.3245
+# EUR: 1.9347
+# RUR: 1.3892
 
+# list size: 10
+# recall: 0.0208
+# ndcg: 0.0166
+# EEL: 1.3773
+# EED: 2.3822
+# EER: 1.9548
+# DP: 2.3233
+# EUR: 1.9238
+# RUR: 1.4839
 
+# list size: 20
+# recall: 0.0257
+# ndcg: 0.0181
+# EEL: 1.38
+# EED: 2.3868
+# EER: 1.9567
+# DP: 2.3352
+# EUR: 1.9291
+# RUR: 1.5664
+
+# list size: 40
+# recall: 0.0257
+# ndcg: 0.0181
+# EEL: 1.38
+# EED: 2.3868
+# EER: 1.9567
+# DP: 2.3352
+# EUR: 1.9291
+# RUR: 1.5664
+
+# list size: 80
+# recall: 0.0257
+# ndcg: 0.0181
+# EEL: 1.38
+# EED: 2.3868
+# EER: 1.9567
+# DP: 2.3352
+# EUR: 1.9291
+# RUR: 1.5664

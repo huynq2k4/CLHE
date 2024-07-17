@@ -47,12 +47,10 @@ def ee_for_ds(data, test, group_info, pweight):
     try:
         # print('data group by user', data)
         sys = data.groupby('user').apply(groupwise, group=group_info)
-        print('sys:', sys.mean())
         sys = sys.mean() #divided by number of users!
     
         # print('test group by user:', test)
         tgt = test.groupby('user').apply(group_ideal, group=group_info)
-        print('tgt:', tgt.mean())
         tgt = tgt.mean()
         
     except:
@@ -62,12 +60,10 @@ def ee_for_ds(data, test, group_info, pweight):
         test_qid = test.loc[test['qid']==qid]
         tgt = group_ideal(test_qid, group=group_info)
 
-    #print("sys_eed: ", sys)
-
     diff = sys - tgt #
 
-    return pd.Series({
+    return {
         'EEL': np.dot(diff, diff),
         'EED': np.dot(sys, sys),
         'EER': 2 * np.dot(sys, tgt)
-    })
+    }

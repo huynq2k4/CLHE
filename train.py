@@ -151,6 +151,8 @@ def main():
 
     best_metrics, best_perform = init_best_metrics(conf)
     best_epoch = 0
+    data_pred = {}
+    data_truth = {}
     setup_seed(conf["seed"])
     num_epoch = conf['epochs'] if conf['epoch'] == -1 else conf["epoch"]
     for epoch in range(num_epoch):
@@ -187,11 +189,12 @@ def main():
                 if epoch != num_epoch - 1:
                     metrics["test"], _, _ = test(model, dataset.test_loader, conf)
                 else:
-                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=100)
-                    with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
-                        json.dump(data_pred, json_file)
-                    with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
-                        json.dump(data_truth, json_file)
+                    export_len = max(conf['topk'])
+                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=export_len)
+                    # with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
+                    #     json.dump(data_pred, json_file)
+                    # with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
+                    #     json.dump(data_truth, json_file)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
 
@@ -199,7 +202,7 @@ def main():
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
 
-    beyond_acc(dataset_name, conf['topk'], conf['model'])
+    beyond_acc(dataset_name, data_pred, data_truth, conf['topk'], conf['model'])
 
 
 def init_best_metrics(conf):
@@ -318,29 +321,6 @@ def test(model, dataloader, conf, export_len=None):
             metrics[m][topk] = res[0] / res[1]
 
     return metrics, data_pred, data_truth
-
-def export_prediction(model, dataloader, conf, topk=20):
-    cnt = 0
-    data_pred = {}
-    data_truth = {}
-    device = conf["device"]
-    model.eval()
-    rs = model.propagate()
-    pbar = tqdm(dataloader, total=len(dataloader))
-    for index, b_i_input, seq_b_i_input, b_i_gt in pbar:
-        pred_i = model.evaluate(
-            rs, (index.to(device), b_i_input.to(device), seq_b_i_input.to(device)))
-        pred_i = pred_i - 1e8 * b_i_input.to(device)
-        grd = b_i_gt.to(device)
-        _, col_indice = torch.topk(pred_i, topk)
-        col_indice = col_indice + 1
-        data_pred.update({cnt + i: col_indice[i].tolist() for i in range(col_indice.shape[0])})
-        data_truth.update({cnt + i: [torch.nonzero(grd[i]).squeeze().tolist()] for i in range(grd.shape[0])})
-        cnt += col_indice.shape[0]
-    return data_pred, data_truth
-    
-    
-
 
 def get_metrics(metrics, grd, pred, topks):
     tmp = {"recall": {}, "ndcg": {}}
