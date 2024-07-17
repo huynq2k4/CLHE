@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from collections import OrderedDict
+import random
 
 eps = 1e-9
 
@@ -326,8 +327,13 @@ class CLHE(nn.Module):
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
-        pop_batch = list(set(self.pop).intersection(set(items_in_batch.numpy())))
-        unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.numpy())))
+        pop_batch = list(set(self.pop).intersection(set(items_in_batch.cpu().numpy())))
+        unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.cpu().numpy())))
+        random.shuffle(pop_batch)
+        random.shuffle(unpop_batch)
+        len_sample = min(len(pop_batch), len(unpop_batch))
+        pop_batch = pop_batch[:len_sample]
+        unpop_batch = unpop_batch[:len_sample]
         feat_pop = feat_retrival_view[pop_batch]
         feat_unpop = feat_retrival_view[unpop_batch]
         pop_loss = MMD(feat_pop, feat_unpop, kernel='multiscale', device=self.device)
