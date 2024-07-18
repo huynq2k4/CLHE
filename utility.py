@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class BundleTrainDataset(Dataset):
-    def __init__(self, conf, b_i_pairs, b_i_graph, features, num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, neg_sample=1):
+    def __init__(self, conf, b_i_pairs, b_i_graph, features, num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, group_pop, neg_sample=1):
         self.conf = conf
         self.b_i_pairs = b_i_pairs
         self.b_i_graph = b_i_graph
@@ -35,6 +35,7 @@ class BundleTrainDataset(Dataset):
         print(f"Train: {self.len_max}")
 
         self.bundle_augment = conf["bundle_augment"]
+        self.pop_rank = group_pop['pop'] + group_pop['unpop']
 
     def __getitem__(self, index):
 
@@ -53,6 +54,24 @@ class BundleTrainDataset(Dataset):
 
         seq_full = F.pad(
             indices, (0, self.len_max-len(indices)), value=self.num_items)
+        
+        def get_seq_pop(seq_full):
+
+            seq_full = seq_full[seq_full != self.num_items].tolist()
+            if len(seq_full) % 2 != 0:
+                seq_full.remove(random.choice(seq_full))
+            seq_full.sort(key=lambda i: self.pop_rank.index(i))
+            
+            mid = len(seq_full) // 2
+            padding = self.len_max // 2
+            seq_pop = [self.num_items] * padding
+            seq_unpop = [self.num_items] * padding
+            seq_pop[:mid], seq_unpop[:mid] = seq_full[:mid], seq_full[mid:]
+            seq_pop = torch.tensor(seq_pop)
+            seq_unpop = torch.tensor(seq_unpop)
+            return seq_pop, seq_unpop
+        
+        seq_pop, seq_unpop = get_seq_pop(seq_full)
 
         if self.conf["bundle_ratio"] > 0 and self.conf["bundle_ratio"] < 1:  # remove items
             if self.bundle_augment == "ID":
@@ -97,8 +116,10 @@ class BundleTrainDataset(Dataset):
             modify[m_indices] = 1
             seq_modify = F.pad(
                 m_indices, (0, self.len_max-len(m_indices)), value=self.num_items)
+        
+        
 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify
+        return self.bundles_map[index], full, seq_full, modify, seq_modify, seq_pop, seq_unpop
 
     def __len__(self):
         return len(self.bundles_map)
@@ -170,8 +191,7 @@ class Datasets():
         self.group_pop = self.get_pop_vec()
 
         self.bundle_train_data = BundleTrainDataset(
-            conf, b_i_pairs_train, b_i_graph_train, self.features, self.num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, conf["neg_num"])
-
+            conf, b_i_pairs_train, b_i_graph_train, self.features, self.num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, self.group_pop, conf["neg_num"])
         self.bundle_val_data = BundleTestDataset(conf, b_i_pairs_val_i, b_i_graph_val_i, b_i_pairs_val_gt, b_i_graph_val_gt,
                                                  self.num_bundles, self.num_items)
         self.bundle_test_data = BundleTestDataset(conf, b_i_pairs_test_i, b_i_graph_test_i, b_i_pairs_test_gt, b_i_graph_test_gt,

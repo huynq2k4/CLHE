@@ -136,7 +136,7 @@ def main():
     run = SummaryWriter(run_path)
     try:
         model = getattr(models, conf['model'])(
-            conf, dataset.graphs, dataset.features, dataset.group_pop).to(device)
+            conf, dataset.graphs, dataset.features).to(device)
     except:
         raise ValueError("Unimplemented model %s" % (conf["model"]))
 

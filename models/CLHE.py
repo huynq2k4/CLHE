@@ -273,7 +273,7 @@ class HierachicalEncoder(nn.Module):
 
 
 class CLHE(nn.Module):
-    def __init__(self, conf, raw_graph, features, group_pop):
+    def __init__(self, conf, raw_graph, features):
         super().__init__()
         self.conf = conf
         device = self.conf["device"]
@@ -283,7 +283,7 @@ class CLHE(nn.Module):
         self.num_item = self.conf["num_items"]
         self.embedding_size = 64
         self.ui_graph, self.bi_graph_train, self.bi_graph_seen = raw_graph
-        self.pop, self.unpop = group_pop['pop'], group_pop['unpop']
+        # self.pop, self.unpop = group_pop['pop'], group_pop['unpop']
         self.item_augmentation = self.conf["item_augment"]
 
         self.encoder = HierachicalEncoder(conf, raw_graph, features)
@@ -311,7 +311,7 @@ class CLHE(nn.Module):
             self.noise_weight = conf['noise_weight']
 
     def forward(self, batch):
-        idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
+        idx, full, seq_full, modify, seq_modify, seq_pop, seq_unpop = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
 
@@ -328,20 +328,23 @@ class CLHE(nn.Module):
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
 
         # popularity loss >>>
-        pop_rank = self.pop + self.unpop
-        pop_batch, unpop_batch = [], []
-        for b in range(seq_full.size(0)):
-            item_list = [i for i in seq_full[b] if i < self.num_item]
-            if len(item_list) % 2 != 0:
-                item_list.remove(random.choice(item_list))
-            item_list.sort(key=lambda i: pop_rank.index(i))
-            mid = len(item_list) // 2
-            pop_batch.extend(item_list[:mid])
-            unpop_batch.extend(item_list[mid:])
+        # pop_rank = self.pop + self.unpop
+        # pop_batch, unpop_batch = [], []
+        # for b in range(seq_full.size(0)):
+        #     item_list = [i for i in seq_full[b] if i < self.num_item]
+        #     if len(item_list) % 2 != 0:
+        #         item_list.remove(random.choice(item_list))
+        #     item_list.sort(key=lambda i: pop_rank.index(i))
+        #     mid = len(item_list) // 2
+        #     pop_batch.extend(item_list[:mid])
+        #     unpop_batch.extend(item_list[mid:])
+        pop_batch = torch.flatten(seq_pop)
+        unpop_batch = torch.flatten(seq_unpop)
+        pop_batch = pop_batch[pop_batch != self.num_item]
+        unpop_batch = unpop_batch[unpop_batch != self.num_item]
         feat_pop = feat_retrival_view[pop_batch]
         feat_unpop = feat_retrival_view[unpop_batch]
         pop_loss = alignment_loss(feat_pop, feat_unpop)
-
         
         # pop_batch = list(set(self.pop).intersection(set(items_in_batch.cpu().numpy())))
         # unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.cpu().numpy())))
