@@ -183,20 +183,22 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
-            if (batch_anchor+1) % test_interval_bs == 0:
-                metrics = {}
-                metrics["val"], _, _ = test(model, dataset.val_loader, conf)
-                if epoch != num_epoch - 1:
-                    metrics["test"], _, _ = test(model, dataset.test_loader, conf)
-                else:
-                    export_len = max(conf['topk'])
-                    metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=export_len)
-                    # with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
-                    #     json.dump(data_pred, json_file)
-                    # with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
-                    #     json.dump(data_truth, json_file)
-                best_metrics, best_perform, best_epoch, is_better = log_metrics(
-                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
+
+
+        if (epoch_anchor + batch_cnt) % test_interval_bs == 0:
+            metrics = {}
+            metrics["val"], _, _ = test(model, dataset.val_loader, conf)
+            if epoch != num_epoch - 1:
+                metrics["test"], _, _ = test(model, dataset.test_loader, conf)
+            else:
+                export_len = max(conf['topk'])
+                metrics["test"], data_pred, data_truth = test(model, dataset.test_loader, conf, export_len=export_len)
+                # with open(f'datasets/{dataset_name}/{dataset_name}_pred.json', 'w') as json_file:
+                #     json.dump(data_pred, json_file)
+                # with open(f'datasets/{dataset_name}/{dataset_name}_future.json', 'w') as json_file:
+                #     json.dump(data_truth, json_file)
+            best_metrics, best_perform, best_epoch, is_better = log_metrics(
+                conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
