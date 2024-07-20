@@ -61,6 +61,8 @@ def get_cmd():
                         help="tau for bundle-level contrastive learning")
     parser.add_argument("--bundle_cl_alpha", default=0.1, type=float,
                         help="alpha for bundle-level contrastive learning")
+    parser.add_argument("--pop_loss_alpha", default=0.1, type=float,
+                        help="alpha for PAAC alignment loss")
     parser.add_argument("--attention", default='', type=str,
                         help="wether to use layernorm or w_v")
     parser.add_argument("--trans_layer", default=1, type=int,

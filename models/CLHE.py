@@ -299,6 +299,7 @@ class CLHE(nn.Module):
 
         self.cl_temp = conf['cl_temp']
         self.cl_alpha = conf['cl_alpha']
+        self.pop_loss_alpha = conf['pop_loss_alpha']
 
         self.bundle_cl_temp = conf['bundle_cl_temp']
         self.bundle_cl_alpha = conf['bundle_cl_alpha']
@@ -351,7 +352,7 @@ class CLHE(nn.Module):
         unpop_batch = unpop_batch[unpop_batch != self.num_item]
         feat_pop = feat_retrival_view[pop_batch]
         feat_unpop = feat_retrival_view[unpop_batch]
-        pop_loss = alignment_loss(feat_pop, feat_unpop)
+        pop_loss = self.pop_loss_alpha * alignment_loss(feat_pop, feat_unpop)
         
         # pop_batch = list(set(self.pop).intersection(set(items_in_batch.cpu().numpy())))
         # unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.cpu().numpy())))
