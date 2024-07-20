@@ -183,6 +183,17 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
+        # pop_loss = 0
+        # model.train(True)
+        # optimizer.zero_grad()
+        # for batch_i, batch in enumerate(dataset.train_loader):
+        #     batch = [x.to(device) for x in batch]
+        #     pop_loss += model(batch, pop_loss=True)
+        # pop_loss /= dataset.num_bundles
+        # losses['loss'] += pop_loss
+        # losses['loss'].backward()
+        # optimizer.step()
+        
 
 
         if (epoch_anchor + batch_cnt) % test_interval_bs == 0:

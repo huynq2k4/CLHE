@@ -310,7 +310,8 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
-    def forward(self, batch):
+    def forward(self, batch, pop_loss=False):
+        
         idx, full, seq_full, modify, seq_modify, seq_pop, seq_unpop = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
@@ -319,7 +320,10 @@ class CLHE(nn.Module):
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         feat_retrival_view = self.decoder(batch, all=True)
+        # if pop_loss:
+        #     pass
 
+        # else:
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -338,6 +342,9 @@ class CLHE(nn.Module):
         #     mid = len(item_list) // 2
         #     pop_batch.extend(item_list[:mid])
         #     unpop_batch.extend(item_list[mid:])
+
+
+
         pop_batch = torch.flatten(seq_pop)
         unpop_batch = torch.flatten(seq_unpop)
         pop_batch = pop_batch[pop_batch != self.num_item]

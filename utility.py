@@ -35,7 +35,8 @@ class BundleTrainDataset(Dataset):
         print(f"Train: {self.len_max}")
 
         self.bundle_augment = conf["bundle_augment"]
-        self.pop_rank = group_pop['pop'] + group_pop['unpop']
+        self.pop_items = group_pop['pop']
+        self.unpop_items = group_pop['unpop']
 
     def __getitem__(self, index):
 
@@ -55,18 +56,24 @@ class BundleTrainDataset(Dataset):
         seq_full = F.pad(
             indices, (0, self.len_max-len(indices)), value=self.num_items)
         
+        # pop_rank = self.pop + self.unpop
         def get_seq_pop(seq_full):
 
             seq_full = seq_full[seq_full != self.num_items].tolist()
-            if len(seq_full) % 2 != 0:
-                seq_full.remove(random.choice(seq_full))
-            seq_full.sort(key=lambda i: self.pop_rank.index(i))
-            
-            mid = len(seq_full) // 2
-            padding = self.len_max // 2
-            seq_pop = [self.num_items] * padding
-            seq_unpop = [self.num_items] * padding
-            seq_pop[:mid], seq_unpop[:mid] = seq_full[:mid], seq_full[mid:]
+            item_pop = [i for i in seq_full if i in self.pop_items]
+            item_unpop = [i for i in seq_full if i in self.unpop_items]
+
+            mid_1 = self.len_max // 2
+            mid_2 = self.len_max - mid_1
+            seq_pop = [self.num_items] * (mid_1 * mid_2)
+            seq_unpop = [self.num_items] * (mid_1 * mid_2)
+            item_pop_len = len(item_pop)
+            item_unpop_len = len(item_unpop)
+            if item_pop_len != 0 and item_unpop_len != 0:
+                seq_len = item_pop_len * item_unpop_len
+                seq_pop[:seq_len] = [x for num in item_pop for x in [num] * item_unpop_len]
+                seq_unpop[:seq_len] = item_unpop * item_pop_len
+                # seq_pop[:len(item_pop)], seq_unpop[:len(item_unpop)] = item_pop, item_unpop
             seq_pop = torch.tensor(seq_pop)
             seq_unpop = torch.tensor(seq_unpop)
             return seq_pop, seq_unpop
