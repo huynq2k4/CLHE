@@ -64,11 +64,17 @@ def get_eval_accuracy(dataset, data_pred, data_truth, topk):
 
 
 
-def get_eval_fairness(dataset, data_pred, data_truth, topk, pweight): 
+def get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight): 
     dir = os.path.dirname(__file__)
     group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_popularity.json'
     with open(group_file, 'r') as f:
         group_item = json.load(f)
+
+    popularity = group_item['pop'] + group_item['unpop']
+    pop_threshold = int(len(popularity) * pop_rate)
+    group_item['pop'] = popularity[:pop_threshold]
+    group_item['unpop'] = popularity[pop_threshold:]
+    
     group_dict = dict()
     for name, item in group_item.items():
         group_dict[name] = len(item) #the number of each group
@@ -169,13 +175,13 @@ def get_eval_diversity(dataset, data_pred, topk): #evaluate diversity
 
  
 
-def beyond_acc(dataset, data_pred, data_truth, topk, method_name):
+def beyond_acc(dataset, data_pred, data_truth, topk, method_name, pop_rate):
 
     if type(topk) != list:
         topk = [topk]
 
     recall, ndcg = get_eval_accuracy(dataset, data_pred, data_truth, topk)
-    fairness = get_eval_fairness(dataset, data_pred, data_truth, topk, pweight='default')
+    fairness = get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight='default')
     diversity = get_eval_diversity(dataset, data_pred, topk)
 
     dir = os.path.dirname(__file__)

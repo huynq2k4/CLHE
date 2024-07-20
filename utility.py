@@ -195,7 +195,7 @@ class Datasets():
         self.graphs = [u_i_graph, b_i_graph_train, b_i_graph_seen]
 
         self.features = self.get_features()
-        self.group_pop = self.get_pop_vec()
+        self.group_pop = self.get_pop_vec(conf['pop_rate'])
 
         self.bundle_train_data = BundleTrainDataset(
             conf, b_i_pairs_train, b_i_graph_train, self.features, self.num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, self.group_pop, conf["neg_num"])
@@ -280,12 +280,17 @@ class Datasets():
 
         return b_i_pairs_i, b_i_graph_i, b_i_pairs_gt, b_i_graph_gt
     
-    def get_pop_vec(self):
+    def get_pop_vec(self, pop_rate):
         dir = os.path.dirname(__file__)
         group_file = f'{dir}/datasets/{self.name}/{self.name}_group_purchase_popularity.json'
         with open(group_file, 'r') as f:
             group_pop = json.load(f)
 
+        popularity = group_pop['pop'] + group_pop['unpop']
+        pop_threshold = int(len(popularity) * pop_rate)
+        group_pop['pop'] = popularity[:pop_threshold]
+        group_pop['unpop'] = popularity[pop_threshold:]
+        
         return group_pop
 
 

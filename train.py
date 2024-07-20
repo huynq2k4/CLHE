@@ -70,6 +70,7 @@ def get_cmd():
     
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
+    parser.add_argument("--pop_rate", default=0.2, type=float, help="")
 
     args = parser.parse_args()
     return args
@@ -215,7 +216,7 @@ def main():
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
 
-    beyond_acc(dataset_name, data_pred, data_truth, conf['topk'], conf['model'])
+    beyond_acc(dataset_name, data_pred, data_truth, conf['topk'], conf['model'], conf['pop_rate'])
 
 
 def init_best_metrics(conf):
