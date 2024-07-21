@@ -273,7 +273,7 @@ class HierachicalEncoder(nn.Module):
 
 
 class CLHE(nn.Module):
-    def __init__(self, conf, raw_graph, features):
+    def __init__(self, conf, raw_graph, features, group_pop):
         super().__init__()
         self.conf = conf
         device = self.conf["device"]
@@ -283,7 +283,7 @@ class CLHE(nn.Module):
         self.num_item = self.conf["num_items"]
         self.embedding_size = 64
         self.ui_graph, self.bi_graph_train, self.bi_graph_seen = raw_graph
-        # self.pop, self.unpop = group_pop['pop'], group_pop['unpop']
+        self.pop, self.unpop = group_pop['pop'], group_pop['unpop']
         self.item_augmentation = self.conf["item_augment"]
 
         self.encoder = HierachicalEncoder(conf, raw_graph, features)
