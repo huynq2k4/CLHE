@@ -333,6 +333,7 @@ class CLHE(nn.Module):
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
 
         # popularity loss >>>
+        # ---------------- PAAC alignment loss -------------
         # pop_rank = self.pop + self.unpop
         # pop_batch, unpop_batch = [], []
         # for b in range(seq_full.size(0)):
@@ -345,25 +346,26 @@ class CLHE(nn.Module):
         #     unpop_batch.extend(item_list[mid:])
 
 
-
-        # pop_batch = torch.flatten(seq_pop)
-        # unpop_batch = torch.flatten(seq_unpop)
-        # pop_batch = pop_batch[pop_batch != self.num_item]
-        # unpop_batch = unpop_batch[unpop_batch != self.num_item]
-        # feat_pop = feat_retrival_view[pop_batch]
-        # feat_unpop = feat_retrival_view[unpop_batch]
-        # pop_loss = self.pop_loss_alpha * alignment_loss(feat_pop, feat_unpop)
-        
-        pop_batch = list(set(self.pop).intersection(set(items_in_batch.cpu().numpy())))
-        unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.cpu().numpy())))
-        random.shuffle(pop_batch)
-        random.shuffle(unpop_batch)
-        len_sample = min(len(pop_batch), len(unpop_batch))
-        pop_batch = pop_batch[:len_sample]
-        unpop_batch = unpop_batch[:len_sample]
+        # ----- global intra list alignment loss -------
+        pop_batch = torch.flatten(seq_pop)
+        unpop_batch = torch.flatten(seq_unpop)
+        pop_batch = pop_batch[pop_batch != self.num_item]
+        unpop_batch = unpop_batch[unpop_batch != self.num_item]
         feat_pop = feat_retrival_view[pop_batch]
         feat_unpop = feat_retrival_view[unpop_batch]
-        pop_loss = self.pop_loss_alpha * MMD(feat_pop, feat_unpop, kernel='multiscale', device=self.device)
+        pop_loss = self.pop_loss_alpha * alignment_loss(feat_pop, feat_unpop)
+        
+        # ---------------- MMD loss --------------------
+        # pop_batch = list(set(self.pop).intersection(set(items_in_batch.cpu().numpy())))
+        # unpop_batch = list(set(self.unpop).intersection(set(items_in_batch.cpu().numpy())))
+        # random.shuffle(pop_batch)
+        # random.shuffle(unpop_batch)
+        # len_sample = min(len(pop_batch), len(unpop_batch))
+        # pop_batch = pop_batch[:len_sample]
+        # unpop_batch = unpop_batch[:len_sample]
+        # feat_pop = feat_retrival_view[pop_batch]
+        # feat_unpop = feat_retrival_view[unpop_batch]
+        # pop_loss = self.pop_loss_alpha * MMD(feat_pop, feat_unpop, kernel='multiscale', device=self.device)
         # popularity loss <<<
 
         # item-level contrastive learning >>>

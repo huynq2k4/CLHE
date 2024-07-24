@@ -196,24 +196,24 @@ def beyond_acc(dataset, data_pred, data_truth, topk, method_name, pop_rate):
 
     for i, k in enumerate(topk):
         f.write('LIST SIZE = ' + str(k) + '\n')
-        f.write('Accuracy:')
+        f.write('Accuracy:\n')
         f.write('recall: '+ str(round(recall[i], 4)) + '\n')
         f.write('ndcg: '+ str(round(ndcg[i], 4)) + '\n')
-        f.write('Fairness UI:')
+        f.write('Fairness UI:\n')
         f.write('EEL: '+ str(round(fairness_UI['EEL'][i], 4)) + '\n')
         f.write('EED: '+ str(round(fairness_UI['EED'][i], 4)) + '\n')
         f.write('EER: '+ str(round(fairness_UI['EER'][i], 4)) + '\n')
         f.write('DP: '+ str(round(fairness_UI['DP'][i], 4)) + '\n')
         f.write('EUR: '+ str(round(fairness_UI['EUR'][i], 4)) + '\n')
         f.write('RUR: '+ str(round(fairness_UI['RUR'][i], 4)) + '\n')
-        f.write('Fairness BI:')
+        f.write('Fairness BI:\n')
         f.write('EEL: '+ str(round(fairness_BI['EEL'][i], 4)) + '\n')
         f.write('EED: '+ str(round(fairness_BI['EED'][i], 4)) + '\n')
         f.write('EER: '+ str(round(fairness_BI['EER'][i], 4)) + '\n')
         f.write('DP: '+ str(round(fairness_BI['DP'][i], 4)) + '\n')
         f.write('EUR: '+ str(round(fairness_BI['EUR'][i], 4)) + '\n')
         f.write('RUR: '+ str(round(fairness_BI['RUR'][i], 4)) + '\n')
-        f.write('Diversity:')
+        f.write('Diversity:\n')
         f.write('ILD: '+ str(round(diversity['ILD'][i], 4)) + '\n')
         f.write('ETP: '+ str(round(diversity['ETP'][i], 4)) + '\n')
         f.write('DS: '+ str(round(diversity['DS'][i], 4)) + '\n')
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     with open(truth_file, 'r') as f:
         data_truth = json.load(f)
 
-    beyond_acc(dataset, data_pred, data_truth, [5, 10, 20], 'CLHE')
+    beyond_acc(dataset, data_pred, data_truth, [5, 10, 20], 'CLHE', 0.2)
 
 
 # -------------pog-------------- 
