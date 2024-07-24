@@ -64,13 +64,13 @@ def get_eval_accuracy(dataset, data_pred, data_truth, topk):
 
 
 
-def get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight): 
+def get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight, pop_type='B-I'): 
     dir = os.path.dirname(__file__)
     group_file = f'{dir}/datasets/{dataset}/{dataset}_group_purchase_popularity.json'
     with open(group_file, 'r') as f:
         group_item = json.load(f)
 
-    popularity = group_item['pop'] + group_item['unpop']
+    popularity = group_item[pop_type]
     pop_threshold = int(len(popularity) * pop_rate)
     group_item['pop'] = popularity[:pop_threshold]
     group_item['unpop'] = popularity[pop_threshold:]
@@ -181,7 +181,9 @@ def beyond_acc(dataset, data_pred, data_truth, topk, method_name, pop_rate):
         topk = [topk]
 
     recall, ndcg = get_eval_accuracy(dataset, data_pred, data_truth, topk)
-    fairness = get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight='default')
+    fairness_UI = get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight='default', pop_type='U-I')
+    fairness_BI = get_eval_fairness(dataset, data_pred, data_truth, topk, pop_rate, pweight='default', pop_type='B-I')
+    
     diversity = get_eval_diversity(dataset, data_pred, topk)
 
     dir = os.path.dirname(__file__)
@@ -193,15 +195,25 @@ def beyond_acc(dataset, data_pred, data_truth, topk, method_name, pop_rate):
     
 
     for i, k in enumerate(topk):
-        f.write('list size: ' + str(k) + '\n')
+        f.write('LIST SIZE = ' + str(k) + '\n')
+        f.write('Accuracy:')
         f.write('recall: '+ str(round(recall[i], 4)) + '\n')
         f.write('ndcg: '+ str(round(ndcg[i], 4)) + '\n')
-        f.write('EEL: '+ str(round(fairness['EEL'][i], 4)) + '\n')
-        f.write('EED: '+ str(round(fairness['EED'][i], 4)) + '\n')
-        f.write('EER: '+ str(round(fairness['EER'][i], 4)) + '\n')
-        f.write('DP: '+ str(round(fairness['DP'][i], 4)) + '\n')
-        f.write('EUR: '+ str(round(fairness['EUR'][i], 4)) + '\n')
-        f.write('RUR: '+ str(round(fairness['RUR'][i], 4)) + '\n')
+        f.write('Fairness UI:')
+        f.write('EEL: '+ str(round(fairness_UI['EEL'][i], 4)) + '\n')
+        f.write('EED: '+ str(round(fairness_UI['EED'][i], 4)) + '\n')
+        f.write('EER: '+ str(round(fairness_UI['EER'][i], 4)) + '\n')
+        f.write('DP: '+ str(round(fairness_UI['DP'][i], 4)) + '\n')
+        f.write('EUR: '+ str(round(fairness_UI['EUR'][i], 4)) + '\n')
+        f.write('RUR: '+ str(round(fairness_UI['RUR'][i], 4)) + '\n')
+        f.write('Fairness BI:')
+        f.write('EEL: '+ str(round(fairness_BI['EEL'][i], 4)) + '\n')
+        f.write('EED: '+ str(round(fairness_BI['EED'][i], 4)) + '\n')
+        f.write('EER: '+ str(round(fairness_BI['EER'][i], 4)) + '\n')
+        f.write('DP: '+ str(round(fairness_BI['DP'][i], 4)) + '\n')
+        f.write('EUR: '+ str(round(fairness_BI['EUR'][i], 4)) + '\n')
+        f.write('RUR: '+ str(round(fairness_BI['RUR'][i], 4)) + '\n')
+        f.write('Diversity:')
         f.write('ILD: '+ str(round(diversity['ILD'][i], 4)) + '\n')
         f.write('ETP: '+ str(round(diversity['ETP'][i], 4)) + '\n')
         f.write('DS: '+ str(round(diversity['DS'][i], 4)) + '\n')

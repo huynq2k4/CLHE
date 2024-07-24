@@ -69,6 +69,8 @@ def get_cmd():
                         help="the number of layers for layernorm")
     parser.add_argument("--num_token", default=200, type=int,
                         help="the number of tokens (items in the bundle)")
+    parser.add_argument("--pop_type", default="BI", type=str,
+                        help="popularity view (UI or BI)")
     
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
